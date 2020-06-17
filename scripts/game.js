@@ -95,7 +95,7 @@ var Asteroid = function (_MovingObject) {
 
 exports.default = Asteroid;
 
-},{"MovingObject":3,"utils":7}],2:[function(require,module,exports){
+},{"MovingObject":4,"utils":8}],2:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -173,7 +173,71 @@ var Bullet = function (_MovingObject) {
 
 exports.default = Bullet;
 
-},{"MovingObject":3,"utils":7}],3:[function(require,module,exports){
+},{"MovingObject":4,"utils":8}],3:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _createClass = function () {
+  function defineProperties(target, props) {
+    for (var i = 0; i < props.length; i++) {
+      var descriptor = props[i];descriptor.enumerable = descriptor.enumerable || false;descriptor.configurable = true;if ("value" in descriptor) descriptor.writable = true;Object.defineProperty(target, descriptor.key, descriptor);
+    }
+  }return function (Constructor, protoProps, staticProps) {
+    if (protoProps) defineProperties(Constructor.prototype, protoProps);if (staticProps) defineProperties(Constructor, staticProps);return Constructor;
+  };
+}();
+
+var _utils = require('utils');
+
+function _classCallCheck(instance, Constructor) {
+  if (!(instance instanceof Constructor)) {
+    throw new TypeError("Cannot call a class as a function");
+  }
+}
+
+var ExtraLife = function () {
+  function ExtraLife(position) {
+    _classCallCheck(this, ExtraLife);
+
+    this.position = position;
+  }
+
+  _createClass(ExtraLife, [{
+    key: 'update',
+    value: function update(options) {
+      var _position = this.position,
+          x = _position.x,
+          y = _position.y;
+      var ctx = options.ctx,
+          player = options.player,
+          pickLife = options.pickLife;
+
+      if ((0, _utils.calcDistance)(this.position, player.position) < 60) pickLife();
+      ctx.strokeStyle = 'red';
+      ctx.beginPath();
+      ctx.arc(x, y, 30, 0, 2 * Math.PI);
+      ctx.stroke();
+      ctx.closePath();
+      ctx.strokeStyle = 'black';
+      ctx.beginPath();
+      ctx.moveTo(x, y - 15);
+      ctx.lineTo(x - 10, y + 10);
+      ctx.lineTo(x, y);
+      ctx.lineTo(x + 10, y + 10);
+      ctx.closePath();
+      ctx.stroke();
+    }
+  }]);
+
+  return ExtraLife;
+}();
+
+exports.default = ExtraLife;
+
+},{"utils":8}],4:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -221,7 +285,7 @@ var MovingObject = function () {
 
 exports.default = MovingObject;
 
-},{}],4:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -351,7 +415,7 @@ var Player = function (_MovingObject) {
 
 exports.default = Player;
 
-},{"MovingObject":3,"utils":7}],5:[function(require,module,exports){
+},{"MovingObject":4,"utils":8}],6:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -385,6 +449,10 @@ var _Asteroid2 = _interopRequireDefault(_Asteroid);
 var _Bullet = require('Bullet');
 
 var _Bullet2 = _interopRequireDefault(_Bullet);
+
+var _ExtraLife = require('ExtraLife');
+
+var _ExtraLife2 = _interopRequireDefault(_ExtraLife);
 
 function _interopRequireDefault(obj) {
   return obj && obj.__esModule ? obj : { default: obj };
@@ -423,14 +491,15 @@ var Game = function () {
       this.onResize();
       this.onScoreScreen = false;
       this.score = 0;
+      this.lifeForPoints = [10, 120, 8000, 10000, 15000];
       this.lives = 3;
 
       this.player = new _Player2.default(this.center, { vx: 0, vy: 0 }, 1);
 
       this.asteroidSizes = [2, 3, 4, 7];
       this.asteroids = this.initAsteroids();
-
       this.bullets = [];
+      this.extraLives = [];
 
       this.player.checkOutOfBoundaries = this.outOfBoundariesWrap(this.player);
       (0, _utils.addListener)(this.canvas, 'mousemove', function (event) {
@@ -571,6 +640,10 @@ var Game = function () {
             _this3.asteroids.push(_this3.spawnAsteroid());
           }
           _this3.score += 10 * nearest.size;
+          if (_this3.lifeForPoints[0] < _this3.score) {
+            _this3.extraLives.push(new _ExtraLife2.default({ x: Math.random() * _this3.width, y: Math.random() * _this3.height }));
+            _this3.lifeForPoints.shift();
+          }
           _this3.asteroids.splice(asteroidIndex, 1);
           (0, _sound2.default)(440, 220);
         }
@@ -616,11 +689,8 @@ var Game = function () {
           _this6.lives--;
           (0, _sound2.default)(55, 135);
           // removing all of the asteroids on the spawn
-          var checkDistance = 200;
-          _this6.asteroids = _this6.asteroids.filter(function (asteroid) {
-            var distance = (0, _utils.calcDistance)(asteroid.position, _this6.center);
-            return checkDistance < distance;
-          });
+          _this6.asteroids = _this6.initAsteroids();
+          _this6.bullets = [];
           _this6.player.position.x = _this6.center.x;
           _this6.player.position.y = _this6.center.y;
 
@@ -630,39 +700,54 @@ var Game = function () {
       };
     }
   }, {
-    key: 'outOfBoundariesWrap',
-    value: function outOfBoundariesWrap(object) {
+    key: 'pickLife',
+    value: function pickLife(extraLife) {
       var _this7 = this;
 
       return function () {
-        if (object.position.x > _this7.width) object.position.x = 0;
-        if (object.position.y > _this7.height) object.position.y = 0;
-        if (object.position.x < 0) object.position.x = _this7.width;
-        if (object.position.y < 0) object.position.y = _this7.height;
+        _this7.lives++;
+        _this7.extraLives.splice(_this7.extraLives.indexOf(extraLife), 1);
+      };
+    }
+  }, {
+    key: 'outOfBoundariesWrap',
+    value: function outOfBoundariesWrap(object) {
+      var _this8 = this;
+
+      return function () {
+        if (object.position.x > _this8.width) object.position.x = 0;
+        if (object.position.y > _this8.height) object.position.y = 0;
+        if (object.position.x < 0) object.position.x = _this8.width;
+        if (object.position.y < 0) object.position.y = _this8.height;
       };
     }
   }, {
     key: 'update',
     value: function update(time) {
-      var _this8 = this;
+      var _this9 = this;
 
       this.ctx.clearRect(0, 0, this.width, this.height);
 
       this.asteroids.forEach(function (asteroid) {
-        asteroid.update({ ctx: _this8.ctx });
+        asteroid.update({ ctx: _this9.ctx });
       });
       this.player.update({ ctx: this.ctx, mouse: this.mouse });
 
-      this.bullets.forEach(function (bullet) {
-        bullet.update({ ctx: _this8.ctx });
+      if (this.bullets.length > 0) this.bullets.forEach(function (bullet) {
+        bullet.update({ ctx: _this9.ctx });
+      });
+
+      if (this.extraLives.length > 0) this.extraLives.forEach(function (el) {
+        return el.update({ ctx: _this9.ctx, player: _this9.player, pickLife: _this9.pickLife(el) });
       });
 
       if (!this.onScoreScreen) {
         this.ctx.font = "24px Helvetica";
+        this.ctx.strokeStyle = 'black';
 
         this.ctx.strokeText('score: ' + this.score + '\n lives: ' + this.lives, 10, 50);
         requestAnimationFrame(function (time) {
-          return _this8.update(time);
+          return _this9.update(time);
         });
       }
     }
@@ -699,7 +784,7 @@ function startNewGame() {
 
 startNewGame();
 
-},{"Asteroid":1,"Bullet":2,"Player":4,"sound":6,"utils":7}],6:[function(require,module,exports){
+},{"Asteroid":1,"Bullet":2,"ExtraLife":3,"Player":5,"sound":7,"utils":8}],7:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -734,7 +819,7 @@ function playSound(freq1, freq2) {
 
 exports.default = playSound;
 
-},{}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -794,5 +879,5 @@ exports.addListener = addListener;
 exports.removeListener = removeListener;
 exports.listeners = listeners;
 
-},{}]},{},[5])
+},{}]},{},[6])
 //# sourceMappingURL=game.js.map
