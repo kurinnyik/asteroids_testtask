@@ -10,9 +10,11 @@ export default class Asteroid extends MovingObject {
     let rotY = Math.random() < 0.5 ? Math.sqrt(1 - rotX ** 2) : -Math.sqrt(1 - rotX ** 2);
     this.rotation = {x: rotX, y: rotY};
 
+
+    // randomized points for a variations of asteroids form
     this.pointsBeforeRotation = [
       [-12 * this.size, -12 * this.size],
-      [2*this.size, -13*Math.random() * this.size],
+      [2 * this.size, -13 * Math.random() * this.size],
       [(Math.random() * 2 + 8) * this.size, -8 * this.size],
       [13 * this.size, 3 * this.size],
       [(Math.random() * 2 + 6) * this.size, (Math.random() * 2 + 5) * this.size],

@@ -10,7 +10,6 @@ export default class Game {
     this.canvas = document.getElementById('canvas');
     this.ctx = this.canvas.getContext('2d');
 
-    this.prevUpdateTime = 0;
     this.height = 0;
     this.width = 0;
     this.center = {x: 0, y: 0};
@@ -75,7 +74,7 @@ export default class Game {
 
       if (calcDistance({x, y}, this.player.position) > asteroidSize * 15) {
         timesTried = timesTried + 10;
-      };
+      }
       timesTried++;
     }
     let vx = speed ? speed.vx : (Math.random() * 5) - 2.5;
@@ -97,9 +96,11 @@ shoot()
     };
     let bullet = new Bullet(this.player.position, vectorNormalized);
     this.bullets.push(bullet);
-    let hardModeShot = this.outOfBoundariesBounce(bullet);
-    let easyModeShot = this.outOfBoundariesDestroy(bullet, this.bullets.length - 1);
-    bullet.checkOutOfBoundaries = this.score < 3500 ? easyModeShot : hardModeShot;
+
+    let noviceShot = this.outOfBoundariesDestroy(bullet, this.bullets.length - 1);
+    let veteranShot = this.outOfBoundariesBounce(bullet);
+
+    bullet.checkOutOfBoundaries = this.score < 4000 ? noviceShot : veteranShot; // small advantage for the player after a good score
     bullet.hit = this.bulletHit(bullet);
   }
 }
@@ -174,7 +175,7 @@ crash()
     else {
       this.lives--;
       playSound(55, 135);
-
+      // removing all of the asteroids on the spawn
       const checkDistance = 200;
       this.asteroids = this.asteroids.filter(asteroid => {
         const distance = calcDistance(asteroid.position, this.center);
@@ -189,20 +190,19 @@ crash()
   }
 }
 
-outOfBoundariesWrap(player)
+outOfBoundariesWrap(object)
 {
   return () => {
-    if (player.position.x > this.width) player.position.x = 0;
-    if (player.position.y > this.height) player.position.y = 0;
-    if (player.position.x < 0) player.position.x = this.width;
-    if (player.position.y < 0) player.position.y = this.height;
+    if (object.position.x > this.width) object.position.x = 0;
+    if (object.position.y > this.height) object.position.y = 0;
+    if (object.position.x < 0) object.position.x = this.width;
+    if (object.position.y < 0) object.position.y = this.height;
   }
 }
 
 update(time)
 {
-  this.prevUpdateTime = time;
-  this.ctx.clearRect(0, 0, canvas.width, canvas.height);
+  this.ctx.clearRect(0, 0, this.width, this.height);
 
   this.asteroids.forEach(asteroid => {
     asteroid.update({ctx: this.ctx});
@@ -243,6 +243,6 @@ gameOver()
 function startNewGame() {
   listeners.forEach(listener => removeListener(listener.target, listener.event, listener.handler));
   new Game();
-};
+}
 
 startNewGame();
